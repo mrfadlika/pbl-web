@@ -9,6 +9,7 @@ import {
   User,
   ArrowRight,
 } from "lucide-react";
+import FooterGlobal from "../Footer";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("all");
@@ -130,7 +131,7 @@ export default function Home() {
             </div>
             <nav className="flex gap-6 items-center">
               <a
-                href="#"
+                href="/lost-items"
                 className="hover:text-indigo-200 transition font-medium"
               >
                 List
@@ -216,7 +217,7 @@ export default function Home() {
             Recently Found Items
           </h2>
           <a
-            href="#"
+            href="/found-items"
             className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium"
           >
             <span>View All</span>
@@ -262,7 +263,7 @@ export default function Home() {
             Recently Lost Items
           </h2>
           <a
-            href="#"
+            href="/lost-items"
             className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium"
           >
             <span>View All</span>
@@ -374,42 +375,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="max-w-6xl mx-auto px-4 py-12">
-        <div className="relative bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-lg overflow-visible">
-          <div className="flex flex-col md:flex-row items-center">
-            {/* Text Content */}
-            <div className="md:w-3/5 mb-8 md:mb-0">
-              <h2 className="text-3xl font-bold mb-4">
-                Lost or Found Something?
-              </h2>
-              <p className="text-blue-100 mb-6">
-                Report it now and help someone reunite with their belongings.
-                Even small actions can make a big difference in someone's day.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md">
-                  Report Lost Item
-                </button>
-                <button className="bg-blue-800 text-white hover:bg-blue-900 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md border border-blue-700">
-                  Report Found Item
-                </button>
-              </div>
-            </div>
-
-            {/* Image Container - Absolute positioned to allow overflow */}
-            <div className="md:w-2/5 relative">
-              <div className="absolute right-0 md:-top-50 md:-right-12 lg:-right-50 xl:-right-50 w-full h-full">
-                <img
-                  src="/orang.svg"
-                  alt="Illustration of person with magnifying glass"
-                  className="h-64 md:h-96 object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FooterGlobal />
     </div>
   );
 }
