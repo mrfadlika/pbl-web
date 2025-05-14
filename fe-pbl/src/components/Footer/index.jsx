@@ -14,12 +14,12 @@ const FooterGlobal = () => {
               orang lain!
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md">
+              <a href="/forms-lost" className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md">
                 Laporkan Kehilangan Barang
-              </button>
-              <button className="bg-blue-800 text-white hover:bg-blue-900 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md border border-blue-700">
+              </a>
+              <a href="/forms-found" className="bg-blue-800 text-white hover:bg-blue-900 px-6 py-3 rounded-lg font-semibold transition-colors shadow-md border border-blue-700">
                 Laporkan Menemukan Barang
-              </button>
+              </a>
             </div>
           </div>
 

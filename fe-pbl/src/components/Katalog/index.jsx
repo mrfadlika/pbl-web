@@ -8,6 +8,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import FooterGlobal from "../Footer";
+import DetailModal from "../Modal";
 
 const Katalog = ({
   initialActiveTab = "lost",
@@ -33,6 +34,8 @@ const Katalog = ({
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -68,6 +71,21 @@ const Katalog = ({
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleOpenModal = (item) => {
+    // Pastikan properti image selalu array
+    const itemCopy = { ...item };
+    if (itemCopy.image && !Array.isArray(itemCopy.image)) {
+      itemCopy.image = [itemCopy.image];
+    }
+    setSelectedItem(itemCopy);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
   };
 
   const filteredItems = activeTab === "lost" ? lostItems : foundItems;
@@ -259,7 +277,7 @@ const Katalog = ({
             >
               <div className="relative h-48 sm:h-44 bg-gray-200">
                 <img
-                  src={item.image}
+                  src={item.image[0]}
                   alt={item.title}
                   className="w-full h-full object-cover"
                 />
@@ -294,7 +312,10 @@ const Katalog = ({
                       : "Anda yang kehilangan?"}
                   </button> */}
 
-                  <button className="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors">
+                  <button 
+                    onClick={() => handleOpenModal(item)} 
+                    className="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors"
+                  >
                     Detail
                   </button>
                 </div>
@@ -320,6 +341,9 @@ const Katalog = ({
           </div>
         )}
       </main>
+
+      {/* Detail Modal */}
+      <DetailModal isOpen={isModalOpen} onClose={handleCloseModal} item={selectedItem} />
 
       <FooterGlobal />
     </div>

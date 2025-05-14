@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   ChevronLeft,
@@ -10,10 +10,58 @@ import {
   ArrowRight,
 } from "lucide-react";
 import FooterGlobal from "../Footer";
+import { itemsApi, reportsApi } from "../../services/api";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lostItems, setLostItems] = useState([]);
+  const [foundItems, setFoundItems] = useState([]);
+  const [matchedItems, setMatchedItems] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Ambil data barang hilang terbaru
+        const lostResponse = await itemsApi.getAll({ 
+          type: 'lost',
+          limit: 4, 
+          sort: 'created_at',
+          order: 'desc'
+        });
+        
+        // Ambil data barang ditemukan terbaru
+        const foundResponse = await itemsApi.getAll({ 
+          type: 'found',
+          limit: 4, 
+          sort: 'created_at',
+          order: 'desc'
+        });
+        
+        // Ambil data successful matches terbaru (opsional, jika ada endpoint khusus)
+        const matchedResponse = await fetch('/api/dummy-successes.json')
+          .then(res => res.json())
+          .catch(() => []);
+        
+        // Update state dengan data dari API
+        setLostItems(lostResponse.data?.data || []);
+        setFoundItems(foundResponse.data?.data || []);
+        setMatchedItems(matchedResponse || []);
+        
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Gagal memuat data. Silakan coba lagi nanti.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   const categories = [
     { id: "all", name: "All" },
@@ -26,77 +74,8 @@ export default function Home() {
     { id: "id", name: "ID Card" },
   ];
 
-  const foundItems = [
-    {
-      id: 1,
-      type: "wallet",
-      title: "Brown Leather Wallet",
-      location: "Central Library, 2nd Floor",
-      time: "3 hours ago",
-      image: "https://placehold.co/400x300/967259/FFFFFF?text=Wallet",
-    },
-    {
-      id: 2,
-      type: "laptop",
-      title: 'MacBook Pro 14"',
-      location: "Science Building, Room 204",
-      time: "5 hours ago",
-      image: "https://placehold.co/400x300/999999/FFFFFF?text=MacBook",
-    },
-    {
-      id: 3,
-      type: "laptop",
-      title: "Dell XPS 15",
-      location: "Student Center, 1st Floor",
-      time: "7 hours ago",
-      image: "https://placehold.co/400x300/333333/FFFFFF?text=Dell+XPS",
-    },
-    {
-      id: 4,
-      type: "keys",
-      title: "Car Keys with Green Keychain",
-      location: "Parking Lot B",
-      time: "12 hours ago",
-      image: "https://placehold.co/400x300/22cc88/FFFFFF?text=Keys",
-    },
-  ];
-
-  const lostItems = [
-    {
-      id: 5,
-      type: "phone",
-      title: "iPhone 15 Pro (Black)",
-      location: "Sports Center",
-      time: "2 hours ago",
-      image: "https://placehold.co/400x300/111111/FFFFFF?text=iPhone",
-    },
-    {
-      id: 6,
-      type: "bag",
-      title: "Blue Backpack",
-      location: "Bus Stop Near North Gate",
-      time: "8 hours ago",
-      image: "https://placehold.co/400x300/3366cc/FFFFFF?text=Backpack",
-    },
-    {
-      id: 7,
-      type: "laptop",
-      title: "Lenovo ThinkPad",
-      location: "Engineering Building, Lab 3",
-      time: "1 day ago",
-      image: "https://placehold.co/400x300/444444/FFFFFF?text=ThinkPad",
-    },
-    {
-      id: 8,
-      type: "watch",
-      title: "Silver Watch",
-      location: "Gym Locker Room",
-      time: "1 day ago",
-      image: "https://placehold.co/400x300/cccccc/333333?text=Watch",
-    },
-  ];
-
-  const matchedItems = [
+  // Fallback data jika API belum tersedia
+  const fallbackMatchedItems = [
     {
       id: 9,
       lost: {
@@ -112,6 +91,18 @@ export default function Home() {
       image: "https://placehold.co/400x300/ffffff/333333?text=AirPods",
     },
   ];
+
+  // Filter item berdasarkan kategori yang dipilih
+  const filteredFoundItems = activeTab === "all" 
+    ? foundItems 
+    : foundItems.filter(item => item.category?.toLowerCase() === activeTab);
+  
+  const filteredLostItems = activeTab === "all"
+    ? lostItems
+    : lostItems.filter(item => item.category?.toLowerCase() === activeTab);
+
+  // Jika tidak ada data matched dari API, gunakan data fallback
+  const displayedMatchedItems = matchedItems.length > 0 ? matchedItems : fallbackMatchedItems;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white text-gray-800 font-sans">
@@ -225,35 +216,49 @@ export default function Home() {
           </a>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {foundItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden transition hover:shadow-lg"
-            >
-              <div className="h-40 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 text-gray-800">
-                  {item.title}
-                </h3>
-                <div className="flex items-center text-gray-600 mb-1.5 text-sm">
-                  <MapPin size={16} className="mr-1.5 text-indigo-600" />
-                  <span>{item.location}</span>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        ) : filteredFoundItems.length === 0 ? (
+          <div className="text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600">Belum ada barang ditemukan dalam kategori ini.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredFoundItems.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-xl shadow-md overflow-hidden transition hover:shadow-lg"
+              >
+                <div className="h-40 overflow-hidden">
+                  <img
+                    src={Array.isArray(item.image) ? item.image[0] : item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                <div className="flex items-center text-gray-500 text-sm">
-                  <Clock size={16} className="mr-1.5 text-indigo-600" />
-                  <span>{item.time}</span>
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg mb-2 text-gray-800">
+                    {item.title}
+                  </h3>
+                  <div className="flex items-center text-gray-600 mb-1.5 text-sm">
+                    <MapPin size={16} className="mr-1.5 text-indigo-600" />
+                    <span>{item.location}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500 text-sm">
+                    <Clock size={16} className="mr-1.5 text-indigo-600" />
+                    <span>{item.date}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Lost Items */}
@@ -271,35 +276,49 @@ export default function Home() {
           </a>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {lostItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden transition hover:shadow-lg"
-            >
-              <div className="h-40 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 text-gray-800">
-                  {item.title}
-                </h3>
-                <div className="flex items-center text-gray-600 mb-1.5 text-sm">
-                  <MapPin size={16} className="mr-1.5 text-red-500" />
-                  <span>{item.location}</span>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        ) : filteredLostItems.length === 0 ? (
+          <div className="text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600">Belum ada barang hilang dalam kategori ini.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredLostItems.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-xl shadow-md overflow-hidden transition hover:shadow-lg"
+              >
+                <div className="h-40 overflow-hidden">
+                  <img
+                    src={Array.isArray(item.image) ? item.image[0] : item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                <div className="flex items-center text-gray-500 text-sm">
-                  <Clock size={16} className="mr-1.5 text-red-500" />
-                  <span>{item.time}</span>
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg mb-2 text-gray-800">
+                    {item.title}
+                  </h3>
+                  <div className="flex items-center text-gray-600 mb-1.5 text-sm">
+                    <MapPin size={16} className="mr-1.5 text-red-500" />
+                    <span>{item.location}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500 text-sm">
+                    <Clock size={16} className="mr-1.5 text-red-500" />
+                    <span>{item.date}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Success Stories */}
@@ -313,7 +332,7 @@ export default function Home() {
         </div>
 
         <div className="max-w-5xl mx-auto">
-          {matchedItems.map((match) => (
+          {displayedMatchedItems.map((match) => (
             <div
               key={match.id}
               className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 shadow-md"
