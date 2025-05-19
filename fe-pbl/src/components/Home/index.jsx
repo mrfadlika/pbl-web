@@ -10,7 +10,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import FooterGlobal from "../Footer";
-import { itemsApi, reportsApi } from "../../services/api";
+import { itemsApi, reportsApi, getStorageUrl } from "../../services/api";
+import { formatDate } from "../../utils/dateUtils";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("all");
@@ -237,9 +238,17 @@ export default function Home() {
               >
                 <div className="h-40 overflow-hidden">
                   <img
-                    src={Array.isArray(item.image) ? item.image[0] : item.image}
+                    src={Array.isArray(item.image) && item.image.length > 0 
+                      ? getStorageUrl(item.image[0]) 
+                      : typeof item.image === 'string' 
+                        ? getStorageUrl(item.image) 
+                        : '/placeholder-image.jpg'}
                     alt={item.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
+                    }}
                   />
                 </div>
                 <div className="p-4">
@@ -252,7 +261,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center text-gray-500 text-sm">
                     <Clock size={16} className="mr-1.5 text-indigo-600" />
-                    <span>{item.date}</span>
+                    <span>{formatDate(item.date, 'medium')}</span>
                   </div>
                 </div>
               </div>
@@ -297,9 +306,17 @@ export default function Home() {
               >
                 <div className="h-40 overflow-hidden">
                   <img
-                    src={Array.isArray(item.image) ? item.image[0] : item.image}
+                    src={Array.isArray(item.image) && item.image.length > 0 
+                      ? getStorageUrl(item.image[0]) 
+                      : typeof item.image === 'string' 
+                        ? getStorageUrl(item.image) 
+                        : '/placeholder-image.jpg'}
                     alt={item.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
+                    }}
                   />
                 </div>
                 <div className="p-4">
@@ -312,7 +329,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center text-gray-500 text-sm">
                     <Clock size={16} className="mr-1.5 text-red-500" />
-                    <span>{item.date}</span>
+                    <span>{formatDate(item.date, 'medium')}</span>
                   </div>
                 </div>
               </div>
@@ -341,9 +358,13 @@ export default function Home() {
                 <div className="md:w-1/3">
                   <div className="rounded-xl overflow-hidden shadow-md">
                     <img
-                      src={match.image}
+                      src={typeof match.image === 'string' ? getStorageUrl(match.image) : '/placeholder-image.jpg'}
                       alt={match.lost.title}
                       className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        e.target.src = '/placeholder-image.jpg';
+                        e.target.onerror = null;
+                      }}
                     />
                   </div>
                 </div>
@@ -358,7 +379,7 @@ export default function Home() {
 
                   <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
                     <p className="font-medium text-gray-800">
-                      Lost by {match.lost.user} on {match.lost.date}
+                      Lost by {match.lost.user} on {formatDate(match.lost.date, 'medium')}
                     </p>
                     <h3 className="text-xl font-bold text-gray-900">
                       {match.lost.title}
@@ -367,7 +388,7 @@ export default function Home() {
 
                   <div className="bg-white rounded-xl p-4 shadow-sm">
                     <p className="font-medium text-gray-800">
-                      Found by {match.found.user} on {match.found.date}
+                      Found by {match.found.user} on {formatDate(match.found.date, 'medium')}
                     </p>
                     <h3 className="text-xl font-bold text-gray-900">
                       {match.found.title}

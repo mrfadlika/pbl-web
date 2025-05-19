@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import FooterGlobal from "../Footer";
 import DetailModal from "../Modal";
+import { getStorageUrl } from "../../services/api";
+import { formatDate } from "../../utils/dateUtils";
 
 const Katalog = ({
   initialActiveTab = "lost",
@@ -277,9 +279,17 @@ const Katalog = ({
             >
               <div className="relative h-48 sm:h-44 bg-gray-200">
                 <img
-                  src={item.image[0]}
+                  src={Array.isArray(item.image) && item.image.length > 0 
+                    ? getStorageUrl(item.image[0]) 
+                    : typeof item.image === 'string' 
+                      ? getStorageUrl(item.image) 
+                      : '/placeholder-image.jpg'}
                   alt={item.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  onError={(e) => {
+                    e.target.src = '/placeholder-image.jpg';
+                    e.target.onerror = null; // Prevent infinite loop
+                  }}
                 />
                 <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                   {item.category}
@@ -297,7 +307,7 @@ const Katalog = ({
 
                 <div className="flex items-center text-gray-600 text-sm mb-3">
                   <Calendar className="h-4 w-4 mr-1 text-blue-600 flex-shrink-0" />
-                  <span>{item.date}</span>
+                  <span>{formatDate(item.date, 'medium')}</span>
                 </div>
 
                 <p className="text-gray-600 text-sm mb-4 line-clamp-3">

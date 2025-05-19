@@ -126,86 +126,117 @@ const FormuliBarangHilang = () => {
     setIsSubmitting(true);
     
     try {
-      // Buat FormData untuk mengirim data termasuk file
+      // Buat FormData baru untuk setiap submission
       const formDataToSend = new FormData();
       
-      // Tambahkan data teks
-      formDataToSend.append('title', formData.namaBarang);
-      formDataToSend.append('description', formData.ciriCiriKhusus);
-      formDataToSend.append('location', formData.lokasiTerakhir);
-      formDataToSend.append('category', formData.merk || 'Others');
+      // Data utama sesuai validasi backend
+      formDataToSend.append('title', formData.namaBarang.trim());
+      formDataToSend.append('description', formData.ciriCiriKhusus.trim());
+      formDataToSend.append('location', formData.lokasiTerakhir.trim());
+      formDataToSend.append('category', (formData.merk || 'Others').trim());
       formDataToSend.append('type', 'lost');
-      formDataToSend.append('status', 'open');
-      formDataToSend.append('owner_name', formData.namaNickname);
-      formDataToSend.append('owner_contact', `+62${formData.kontak}`);
-      formDataToSend.append('is_anonymous', formData.isAnonymous ? '1' : '0');
-      formDataToSend.append('color', formData.warna);
-      
-      // Format tanggal - pastikan valid dan tidak kosong
-      if (formData.tanggalKehilangan.day && formData.tanggalKehilangan.month && formData.tanggalKehilangan.year) {
-        const day = formData.tanggalKehilangan.day.toString().padStart(2, '0');
-        const month = formData.tanggalKehilangan.month.toString().padStart(2, '0');
-        const year = formData.tanggalKehilangan.year;
-        formDataToSend.append('date', `${year}-${month}-${day}`);
+      formDataToSend.append('date', getFormattedDate());
+
+      // PENTING: Format yang tepat untuk upload gambar di Laravel
+      if (formData.fotoBarang.length > 0) {
+        // Periksa semua file untuk memastikan format yang valid
+        for (let i = 0; i < formData.fotoBarang.length; i++) {
+          const file = formData.fotoBarang[i];
+          
+          // Log file info untuk debug
+          console.log(`File ${i}: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+          
+          // Periksa tipe file
+          if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+            alert(`File "${file.name}" bukan gambar dengan format yang valid (JPG/JPEG/PNG)`);
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Periksa ukuran file (max 2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            alert(`File "${file.name}" terlalu besar. Maksimal ukuran file adalah 2MB`);
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Gunakan format 'images[]' yang diharapkan Laravel
+          formDataToSend.append('images[]', file);
+        }
       } else {
-        // Default tanggal hari ini jika tidak diisi
-        const today = new Date();
-        formDataToSend.append('date', today.toISOString().split('T')[0]);
+        alert("Anda harus menambahkan minimal 1 foto");
+        setIsSubmitting(false);
+        return;
       }
       
-      // Tambahkan foto-foto dengan format yang benar
-      // Coba gunakan 'images[]' sesuai dengan yang diharapkan backend
-      formData.fotoBarang.forEach((file) => {
-        formDataToSend.append('images[]', file);
-      });
-      
-      // Tambahkan dokumen pendukung jika ada
-      if (formData.dokumenPendukung) {
-        formDataToSend.append('document', formData.dokumenPendukung);
-      }
-      
-      // Tambahkan data tambahan lainnya
-      formDataToSend.append('relation', formData.hubunganDenganBarang || 'Pemilik');
-      
-      // Log FormData untuk debugging (opsional)
-      console.log("Mengirim data ke API...");
-      for (let pair of formDataToSend.entries()) {
-        console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
+      // Debug: log semua data yang akan dikirim
+      console.log("Form data yang akan dikirim:");
+      for (const pair of formDataToSend.entries()) {
+        const [key, value] = pair;
+        if (value instanceof File) {
+          console.log(`${key}: ${value.name} (${value.type}, ${value.size} bytes)`);
+        } else {
+          console.log(`${key}: ${value}`);
+        }
       }
       
       // Kirim data ke API
       const response = await itemsApi.create(formDataToSend);
       
       console.log("Form berhasil dikirim:", response.data);
-      
-      // Tampilkan pesan sukses
       alert("Laporan barang hilang berhasil dikirim!");
-      
-      // Redirect ke halaman daftar barang hilang
       navigate('/lost-items');
       
     } catch (error) {
-      console.error("Error saat mengirim form:", error);
+      console.error("Terjadi error saat upload:", error);
       
-      // Tampilkan informasi error yang lebih detail
-      if (error.response) {
-        console.error("Response error:", error.response.data);
+      let errorMessage = "Terjadi kesalahan saat mengirim data.";
+      
+      // Detailed error reporting
+      if (error.response && error.response.data) {
+        console.error("Response details:", error.response.data);
         
-        // Jika ada pesan error spesifik dari backend
-        if (error.response.data && error.response.data.message) {
-          alert(`Error: ${error.response.data.message}`);
-        } else if (error.response.data && error.response.data.errors) {
-          // Tampilkan error validasi
-          const errorMessages = Object.values(error.response.data.errors).flat().join('\n');
-          alert(`Validasi gagal:\n${errorMessages}`);
-        } else {
-          alert(`Terjadi kesalahan (${error.response.status}). Silakan coba lagi.`);
+        if (error.response.data.message) {
+          errorMessage = `Error: ${error.response.data.message}`;
         }
-      } else {
-        alert("Terjadi kesalahan saat mengirim data. Silakan coba lagi.");
+        
+        if (error.response.data.errors) {
+          const errors = error.response.data.errors;
+          const errorDetails = [];
+          
+          for (const field in errors) {
+            if (errors.hasOwnProperty(field)) {
+              errors[field].forEach(message => {
+                errorDetails.push(`- ${field}: ${message}`);
+              });
+            }
+          }
+          
+          if (errorDetails.length > 0) {
+            errorMessage += "\n\nDetail error:\n" + errorDetails.join("\n");
+          }
+        }
+        
+        console.error('Final error message:', errorMessage);
       }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  // Helper function untuk mendapatkan tanggal dalam format yang benar
+  const getFormattedDate = () => {
+    if (formData.tanggalKehilangan.day && formData.tanggalKehilangan.month && formData.tanggalKehilangan.year) {
+      const day = formData.tanggalKehilangan.day.toString().padStart(2, '0');
+      const month = formData.tanggalKehilangan.month.toString().padStart(2, '0');
+      const year = formData.tanggalKehilangan.year;
+      return `${year}-${month}-${day}`;
+    } else {
+      // Default tanggal hari ini
+      const today = new Date();
+      return today.toISOString().split('T')[0];
     }
   };
   

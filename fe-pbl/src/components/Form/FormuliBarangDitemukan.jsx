@@ -9,6 +9,7 @@ import {
 } from "react-icons/io5";
 import { FiChevronDown } from "react-icons/fi";
 import { BsXCircleFill } from "react-icons/bs";
+import { itemsApi } from "../../services/api";
 
 const FormuliBarangDitemukan = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const FormuliBarangDitemukan = () => {
   const [isEntering, setIsEntering] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [slideDirection, setSlideDirection] = useState("right");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Animasi saat halaman pertama kali dimuat
@@ -114,10 +116,101 @@ const FormuliBarangDitemukan = () => {
     }, 500);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Submitted:", formData);
-    // Kirim data ke backend
+    
+    // Validasi form dasar
+    if (!formData.agreement1 || !formData.agreement2) {
+      alert("Anda harus menyetujui syarat dan ketentuan untuk melanjutkan.");
+      return;
+    }
+
+    // Validasi field wajib
+    if (!formData.namaBarang.trim()) {
+      alert("Nama barang harus diisi.");
+      return;
+    }
+
+    if (!formData.lokasiDitemukan.trim()) {
+      alert("Lokasi ditemukan harus diisi.");
+      return;
+    }
+
+    // Validasi tanggal
+    if (!formData.tanggalDitemukan.day || !formData.tanggalDitemukan.month || !formData.tanggalDitemukan.year) {
+      alert("Tanggal ditemukan harus diisi lengkap.");
+      return;
+    }
+
+    // Validasi kontak
+    if (!formData.kontak.trim()) {
+      alert("Informasi kontak harus diisi.");
+      return;
+    }
+
+    // Validasi gambar
+    if (formData.fotoBarang.length === 0) {
+      alert("Harap unggah minimal 1 foto barang.");
+      return;
+    }
+    
+    try {
+      // Siapkan FormData untuk mengirim data termasuk file
+      const formDataToSend = new FormData();
+      
+      // Tambahkan data dasar
+      formDataToSend.append("title", formData.namaBarang);
+      formDataToSend.append("description", formData.ciriCiriKhusus);
+      formDataToSend.append("type", "found"); // Tipe barang yang ditemukan
+      formDataToSend.append("category", formData.merk || "Lainnya");
+      formDataToSend.append("color", formData.warna);
+      formDataToSend.append("location", formData.lokasiDitemukan);
+      
+      // Format tanggal
+      const tanggal = `${formData.tanggalDitemukan.year}-${formData.tanggalDitemukan.month.toString().padStart(2, '0')}-${formData.tanggalDitemukan.day.toString().padStart(2, '0')}`;
+      formDataToSend.append("date", tanggal);
+      
+      // Data penemu
+      formDataToSend.append("finder_name", formData.namaNickname);
+      formDataToSend.append("finder_contact", "+62" + formData.kontak);
+      formDataToSend.append("is_anonymous", formData.isAnonymous ? 1 : 0);
+      formDataToSend.append("storage_location", formData.barangDisimpanDengan);
+      
+      // Tambahkan gambar satu per satu dengan nama field yang benar
+      for (let i = 0; i < formData.fotoBarang.length; i++) {
+        formDataToSend.append('images[]', formData.fotoBarang[i]);
+      }
+      
+      // Log untuk debugging
+      console.log("Mengirim data form:", Object.fromEntries(formDataToSend));
+      
+      // Tampilkan loading
+      setIsSubmitting(true);
+      
+      // Kirim ke API
+      const response = await itemsApi.create(formDataToSend);
+      
+      console.log("Berhasil mengirim laporan:", response.data);
+      alert("Terima kasih! Laporan barang ditemukan berhasil dikirim.");
+      navigate("/found-items");
+    } catch (error) {
+      console.error("Error saat mengirim data:", error);
+      let errorMessage = "Terjadi kesalahan saat mengirim data. Silakan coba lagi.";
+      
+      if (error.response) {
+        console.error("Response error:", error.response.data);
+        
+        // Deteksi error validasi dari Laravel (422)
+        if (error.response.status === 422 && error.response.data.errors) {
+          const validationErrors = Object.values(error.response.data.errors).flat().join("\n");
+          errorMessage = `Validasi gagal:\n${validationErrors}`;
+        }
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -517,9 +610,20 @@ const FormuliBarangDitemukan = () => {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    disabled={isSubmitting}
+                    className={`w-full px-6 py-3 ${isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex justify-center items-center`}
                   >
-                    Submit
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Mengirim...
+                      </>
+                    ) : (
+                      'Submit'
+                    )}
                   </button>
                 </div>
               </form>

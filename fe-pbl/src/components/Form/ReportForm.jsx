@@ -10,6 +10,8 @@ import {
 import { BsXCircleFill } from "react-icons/bs";
 import InputField from "./InputField";
 import TextAreaField from "./TextAreaField";
+import { reportsApi } from "../../services/api";
+import { formatDate } from "../../utils/dateUtils";
 
 const ReportForm = () => {
   const navigate = useNavigate();
@@ -182,6 +184,17 @@ const ReportForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function untuk mendapatkan tanggal dalam format yang benar untuk API
+  const getFormattedDate = (dateObj) => {
+    if (dateObj.day && dateObj.month && dateObj.year) {
+      const day = dateObj.day.toString().padStart(2, '0');
+      const month = dateObj.month.toString().padStart(2, '0');
+      const year = dateObj.year;
+      return `${year}-${month}-${day}`;
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -197,14 +210,58 @@ const ReportForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulasi pengiriman ke backend (ganti dengan API call sesungguhnya)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Buat FormData untuk mengirim data termasuk file
+      const reportFormData = new FormData();
       
-      console.log("Form submitted:", {
-        itemId,
-        itemCategory,
-        formData
+      // Tambahkan data ke FormData
+      reportFormData.append('item_id', itemId);
+      reportFormData.append('userName', formData.name);
+      reportFormData.append('contact', formData.contact);
+      reportFormData.append('message', formData.message);
+      reportFormData.append('proofDescription', formData.proofDescription);
+      reportFormData.append('report_type', 'claim'); // Mengindikasikan ini laporan klaim pemilik
+      reportFormData.append('additional_info', formData.additionalInfo || '');
+      
+      // Tambahkan informasi lain yang mungkin diperlukan
+      if (formData.ownerDescription) {
+        reportFormData.append('owner_description', formData.ownerDescription);
+      }
+      
+      // Format tanggal dengan benar menggunakan helper function
+      const whenSeenDate = getFormattedDate(formData.whenSeen);
+      if (whenSeenDate) {
+        reportFormData.append('when_seen', whenSeenDate);
+      }
+      
+      if (formData.whereSeen) {
+        reportFormData.append('where_seen', formData.whereSeen);
+      }
+      
+      if (formData.purchaseDate) {
+        reportFormData.append('purchase_date', formData.purchaseDate);
+      }
+      
+      if (formData.purchaseLocation) {
+        reportFormData.append('purchase_location', formData.purchaseLocation);
+      }
+      
+      if (formData.hiddenDetails) {
+        reportFormData.append('hidden_details', formData.hiddenDetails);
+      }
+      
+      if (formData.witness) {
+        reportFormData.append('witness', formData.witness);
+      }
+      
+      // Tambahkan foto bukti
+      formData.proofImages.forEach((file, index) => {
+        reportFormData.append(`proofImages[${index}]`, file);
       });
+      
+      // Kirim data ke API
+      const response = await reportsApi.create(reportFormData);
+      
+      console.log("Report submitted successfully:", response.data);
       
       setSubmitSuccess(true);
       
@@ -217,7 +274,7 @@ const ReportForm = () => {
       console.error("Error submitting form:", error);
       setErrors(prev => ({
         ...prev,
-        submit: "Terjadi kesalahan saat mengirim data. Silakan coba lagi."
+        submit: error.response?.data?.message || "Terjadi kesalahan saat mengirim data. Silakan coba lagi."
       }));
     } finally {
       setIsSubmitting(false);
@@ -293,7 +350,7 @@ const ReportForm = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800">{itemTitle}</h3>
                   <div className="flex items-center text-gray-600 text-sm mt-1">
-                    <IoLocation className="mr-1" /> {itemLocation} • <IoCalendar className="mx-1" /> {itemDate}
+                    <IoLocation className="mr-1" /> {itemLocation} • <IoCalendar className="mx-1" /> {formatDate(itemDate, 'medium')}
                   </div>
                 </div>
               </div>

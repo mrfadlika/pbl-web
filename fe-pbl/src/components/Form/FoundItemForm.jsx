@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Upload, Calendar, MapPin, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { itemsApi } from '../../services/api';
 
 const FoundItemForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     itemName: '',
     brand: '',
@@ -19,6 +22,7 @@ const FoundItemForm = () => {
 
   const [imagePreview, setImagePreview] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -79,10 +83,95 @@ const FoundItemForm = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Data:', formData);
-    // Handle form submission here
+    
+    // Validasi form
+    if (!formData.itemName.trim()) {
+      alert("Nama barang harus diisi");
+      return;
+    }
+    
+    if (!formData.foundLocation.trim()) {
+      alert("Lokasi penemuan harus diisi");
+      return;
+    }
+    
+    if (!formData.foundDate) {
+      alert("Tanggal penemuan harus diisi");
+      return;
+    }
+    
+    if (formData.images.length === 0) {
+      alert("Harap unggah minimal 1 foto barang");
+      return;
+    }
+    
+    if (!formData.agreement) {
+      alert("Anda harus menyetujui syarat dan ketentuan");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Siapkan FormData
+      const formDataToSend = new FormData();
+      
+      // Data barang
+      formDataToSend.append("title", formData.itemName);
+      formDataToSend.append("description", formData.characteristics);
+      formDataToSend.append("type", "found");
+      formDataToSend.append("category", formData.brand || "Lainnya");
+      formDataToSend.append("color", formData.color);
+      formDataToSend.append("location", formData.foundLocation);
+      formDataToSend.append("date", formData.foundDate);
+      
+      // Data penemu
+      formDataToSend.append("finder_name", formData.finderName);
+      formDataToSend.append("is_anonymous", formData.isAnonymous ? 1 : 0);
+      
+      // Kondisi barang
+      if (formData.itemCondition) {
+        formDataToSend.append("item_condition", formData.itemCondition);
+      }
+      
+      // Catatan tambahan
+      if (formData.additionalNotes) {
+        formDataToSend.append("additional_notes", formData.additionalNotes);
+      }
+      
+      // Gambar (upload semua)
+      for (let i = 0; i < formData.images.length; i++) {
+        formDataToSend.append('images[]', formData.images[i]);
+      }
+      
+      console.log("Mengirim data form:", Object.fromEntries(formDataToSend));
+      
+      // Kirim data ke API
+      const response = await itemsApi.create(formDataToSend);
+      console.log("Berhasil mengirim laporan:", response.data);
+      
+      alert("Terima kasih! Laporan barang ditemukan berhasil dikirim.");
+      navigate("/found-items");
+    } catch (error) {
+      console.error("Error saat mengirim data:", error);
+      let errorMessage = "Terjadi kesalahan saat mengirim data. Silakan coba lagi.";
+      
+      if (error.response) {
+        console.error("Response error:", error.response.data);
+        
+        // Deteksi error validasi dari Laravel (422)
+        if (error.response.status === 422 && error.response.data.errors) {
+          const validationErrors = Object.values(error.response.data.errors).flat().join("\n");
+          errorMessage = `Validasi gagal:\n${validationErrors}`;
+        }
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -305,14 +394,26 @@ const FoundItemForm = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={!formData.agreement}
-                  className={`px-8 py-3 rounded-xl text-white font-medium transition-all ${
-                    formData.agreement
-                      ? 'bg-emerald-600 hover:bg-emerald-700'
-                      : 'bg-gray-400 cursor-not-allowed'
+                  disabled={!formData.agreement || isSubmitting}
+                  className={`px-8 py-3 rounded-xl text-white font-medium transition-all flex items-center ${
+                    isSubmitting 
+                      ? 'bg-emerald-400 cursor-not-allowed' 
+                      : formData.agreement
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  Laporkan Penemuan
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Mengirim...
+                    </>
+                  ) : (
+                    'Laporkan Penemuan'
+                  )}
                 </button>
               </div>
             </form>

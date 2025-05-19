@@ -8,6 +8,7 @@ import {
 } from "react-icons/io5";
 import { BsXCircleFill } from "react-icons/bs";
 import { reportsApi } from "../../services/api";
+import { formatDate } from "../../utils/dateUtils";
 
 const ClaimForm = () => {
   const navigate = useNavigate();
@@ -193,6 +194,17 @@ const ClaimForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function untuk mendapatkan tanggal dalam format yang benar untuk API
+  const getFormattedDate = (dateObj) => {
+    if (dateObj.day && dateObj.month && dateObj.year) {
+      const day = dateObj.day.toString().padStart(2, '0');
+      const month = dateObj.month.toString().padStart(2, '0');
+      const year = dateObj.year;
+      return `${year}-${month}-${day}`;
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -219,6 +231,33 @@ const ClaimForm = () => {
       reportFormData.append('proofDescription', formData.proofDescription);
       reportFormData.append('report_type', 'found'); // Mengindikasikan ini laporan penemuan
       reportFormData.append('additional_info', formData.additionalInfo || '');
+      
+      // Format tanggal dengan benar menggunakan helper function
+      const foundDate = getFormattedDate(formData.foundDate);
+      if (foundDate) {
+        reportFormData.append('found_date', foundDate);
+      }
+      
+      // Tambahkan informasi lain yang mungkin diperlukan
+      if (formData.foundTime) {
+        reportFormData.append('found_time', formData.foundTime);
+      }
+      
+      if (formData.specificLocation) {
+        reportFormData.append('specific_location', formData.specificLocation);
+      }
+      
+      if (formData.uniqueFeatures) {
+        reportFormData.append('unique_features', formData.uniqueFeatures);
+      }
+      
+      if (formData.witness) {
+        reportFormData.append('witness', formData.witness);
+      }
+      
+      if (formData.triedContact) {
+        reportFormData.append('tried_contact', formData.triedContact);
+      }
       
       // Tambahkan foto bukti
       formData.proofImages.forEach((file, index) => {
@@ -322,7 +361,7 @@ const ClaimForm = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800">{itemTitle}</h3>
                   <div className="flex items-center text-gray-600 text-sm mt-1">
-                    <IoLocation className="mr-1" /> {itemLocation} • <IoCalendar className="mx-1" /> {itemDate}
+                    <IoLocation className="mr-1" /> {itemLocation} • <IoCalendar className="mx-1" /> {formatDate(itemDate, 'medium')}
                   </div>
                 </div>
               </div>
