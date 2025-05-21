@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:8000/api';
-const STORAGE_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://lostandfound-be.raffifadlika.com/api';
+const STORAGE_URL = 'https://lostandfound-be.raffifadlika.com';
 
 export const getStorageUrl = (path) => {
   if (!path) return '';
