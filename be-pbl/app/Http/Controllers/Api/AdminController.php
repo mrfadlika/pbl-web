@@ -17,53 +17,53 @@ class AdminController extends Controller
     /**
      * Admin login
      */
-    public function login(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-        ]);
+    // public function login(Request $request): JsonResponse
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'email' => 'required|email',
+    //         'password' => 'required|string|min:6',
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
 
-        if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password])) {
-            $admin = Admin::where('email', $request->email)->firstOrFail();
-            $token = $admin->createToken('admin-token')->plainTextToken;
+    //     if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password])) {
+    //         $admin = Admin::where('email', $request->email)->firstOrFail();
+    //         $token = $admin->createToken('admin-token')->plainTextToken;
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Login successful',
-                'data' => [
-                    'admin' => $admin,
-                    'token' => $token,
-                ]
-            ]);
-        }
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Login successful',
+    //             'data' => [
+    //                 'admin' => $admin,
+    //                 'token' => $token,
+    //             ]
+    //         ]);
+    //     }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Invalid credentials'
-        ], 401);
-    }
+    //     return response()->json([
+    //         'status' => 'error',
+    //         'message' => 'Invalid credentials'
+    //     ], 401);
+    // }
 
-    /**
-     * Admin logout
-     */
-    public function logout(Request $request): JsonResponse
-    {
-        $request->user()->tokens()->delete();
+    // /**
+    //  * Admin logout
+    //  */
+    // public function logout(Request $request): JsonResponse
+    // {
+    //     $request->user()->tokens()->delete();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Logout successful'
-        ]);
-    }
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Logout successful'
+    //     ]);
+    // }
 
     /**
      * Get admin reports (reports marked for admin review)
@@ -177,42 +177,42 @@ class AdminController extends Controller
     /**
      * Create a new admin account (super admin only)
      */
-    public function createAdmin(Request $request): JsonResponse
-    {
-        // Check if user is super admin
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized. Only super admin can create new admin accounts'
-            ], 403);
-        }
+    // public function createAdmin(Request $request): JsonResponse
+    // {
+    //     // Check if user is super admin
+    //     if ($request->user()->role !== 'super_admin') {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Unauthorized. Only super admin can create new admin accounts'
+    //         ], 403);
+    //     }
         
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admins',
-            'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,super_admin',
-        ]);
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => 'required|string|max:255',
+    //         'email' => 'required|email|unique:admins',
+    //         'password' => 'required|string|min:6',
+    //         'role' => 'required|in:admin,super_admin',
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Validation failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
         
-        $admin = Admin::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-        ]);
+    //     $admin = Admin::create([
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'password' => Hash::make($request->password),
+    //         'role' => $request->role,
+    //     ]);
         
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Admin created successfully',
-            'data' => $admin
-        ], 201);
-    }
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Admin created successfully',
+    //         'data' => $admin
+    //     ], 201);
+    // }
 }

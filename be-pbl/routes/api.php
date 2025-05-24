@@ -39,12 +39,10 @@ Route::delete('/reports/{id}', [ReportController::class, 'destroy']);
 // Admin routes
 Route::post('/admin/login', [AdminController::class, 'login']);
 
-// Protected admin routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/admin/logout', [AdminController::class, 'logout']);
-    Route::get('/admin/reports', [AdminController::class, 'getAdminReports']);
-    Route::patch('/admin/reports/{id}/verify', [AdminController::class, 'verifyReport']);
-    Route::patch('/admin/reports/{id}/reject', [AdminController::class, 'rejectReport']);
-    Route::get('/admin/dashboard', [AdminController::class, 'getDashboardStats']);
-    Route::post('/admin/create', [AdminController::class, 'createAdmin']);
-}); 
+
+Route::post('/admin/logout', [AdminController::class, 'logout']);
+Route::get('/admin/reports', [AdminController::class, 'getAdminReports']);
+Route::patch('/admin/reports/{id}/verify', [AdminController::class, 'verifyReport']);
+Route::patch('/admin/reports/{id}/reject', [AdminController::class, 'rejectReport']);
+Route::get('/admin/dashboard', [AdminController::class, 'getDashboardStats']);
+Route::post('/admin/create', [AdminController::class, 'createAdmin']);
