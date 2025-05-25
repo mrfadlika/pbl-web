@@ -24,16 +24,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const ReportsAdmin = () => {
+const AdminReport = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("report-items");
-  const [items, setItems] = useState([]);
-  const [loadingReports, setLoadingReports] = useState(false);
+  const [lostItems, setLostItems] = useState([]);
+  const [foundItems, setFoundItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [reports, setReports] = useState([]);
 
   const navigate = useNavigate();
 
@@ -46,13 +43,21 @@ const ReportsAdmin = () => {
         );
         const data = await response.json();
 
-        const reviewedItems = data.data.filter(
-          (item) =>
-            item.reports &&
-            item.reports.some((report) => report.admin_review === true)
+        // Filter items with empty reports array
+        const itemsWithoutReports = data.data.filter(
+          (item) => !item.reports || item.reports.length === 0
         );
 
-        setItems(reviewedItems);
+        // Separate lost and found items
+        const lost = itemsWithoutReports.filter(
+          (item) => item.type?.toLowerCase() === "lost"
+        );
+        const found = itemsWithoutReports.filter(
+          (item) => item.type?.toLowerCase() === "found"
+        );
+
+        setLostItems(lost);
+        setFoundItems(found);
         setError(null);
       } catch (err) {
         setError("Failed to load data");
@@ -63,21 +68,6 @@ const ReportsAdmin = () => {
 
     fetchData();
   }, []);
-
-  const fetchReports = async (itemId) => {
-    try {
-      setLoadingReports(true);
-      const response = await fetch(
-        `https://lostandfound-be.raffifadlika.com/api/items/${itemId}`
-      );
-      const data = await response.json();
-      setReports(data.data.reports || []);
-    } catch (err) {
-      setReports([]);
-    } finally {
-      setLoadingReports(false);
-    }
-  };
 
   const sidebarItems = [
     {
@@ -148,8 +138,8 @@ const ReportsAdmin = () => {
   };
 
   const handleViewItem = (itemData) => {
-    setSelectedItem(itemData);
-    fetchReports(itemData.id);
+    // Handle view item logic here
+    console.log("View item:", itemData);
   };
 
   const renderSidebarSection = (sectionName, items) => (
@@ -163,6 +153,7 @@ const ReportsAdmin = () => {
           onClick={() => {
             setActiveTab(item.id);
             if (item.directTo) {
+              console.log("Navigate to:", item.directTo);
               navigate(item.directTo);
             }
           }}
@@ -176,6 +167,117 @@ const ReportsAdmin = () => {
           {item.label}
         </button>
       ))}
+    </div>
+  );
+
+  const renderTable = (items, title, emptyMessage) => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            {items.length} items
+          </span>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        {items.length > 0 ? (
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Judul
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {items.map((itemData, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    #{itemData.id}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    <div className="max-w-32 truncate">
+                      {itemData.title}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    <div className="max-w-32 truncate">
+                      {itemData.location || "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    <div className="max-w-24 truncate">
+                      {itemData.category || "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900">
+                    {new Date(itemData.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        itemData.status
+                      )}`}
+                    >
+                      {itemData.status || "N/A"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleViewItem(itemData)}
+                        className="text-indigo-600 hover:text-indigo-900 p-1 hover:bg-indigo-50 rounded transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="text-green-600 hover:text-green-900 p-1 hover:bg-green-50 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="text-center py-12">
+            <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Items Found
+            </h3>
+            <p className="text-sm text-gray-500">{emptyMessage}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -196,7 +298,7 @@ const ReportsAdmin = () => {
         <div className="flex items-center justify-between h-32 px-12 border-b border-gray-200">
           <img src="/logo_wak.png" alt="" />
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
-            <X className="w-6 h- text-gray-400" />
+            <X className="w-6 h-6 text-gray-400" />
           </button>
         </div>
 
@@ -219,7 +321,7 @@ const ReportsAdmin = () => {
               >
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Review Items</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Items Reported</h1>
             </div>
 
             <div className="flex items-center space-x-4">
@@ -253,7 +355,7 @@ const ReportsAdmin = () => {
                 <div className="flex">
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800">
-                      Error loading review data
+                      Error loading report data
                     </h3>
                     <div className="mt-2 text-sm text-red-700">
                       <p>{error}</p>
@@ -264,6 +366,23 @@ const ReportsAdmin = () => {
             )}
 
             {/* Dashboard Content */}
+            {!loading && !error && (
+              <div className="space-y-8">
+                {/* Lost Items Table */}
+                {renderTable(
+                  lostItems,
+                  "Lost Items",
+                  "No lost items without reports found."
+                )}
+
+                {/* Found Items Table */}
+                {renderTable(
+                  foundItems,
+                  "Found Items", 
+                  "No found items without reports found."
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -279,4 +398,4 @@ const ReportsAdmin = () => {
   );
 };
 
-export default ReportsAdmin;
+export default AdminReport;
