@@ -22,15 +22,30 @@ import {
   Eye,
   Edit,
   Trash2,
+  Filter,
+  MapPin,
+  Clock,
+  Tag,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getStorageUrl } from "../../../services/api";
+
 const AdminReport = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("report-items");
+  const [activeItemTab, setActiveItemTab] = useState("lost");
   const [lostItems, setLostItems] = useState([]);
   const [foundItems, setFoundItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const [loadingModal, setLoadingModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -42,32 +57,35 @@ const AdminReport = () => {
           "https://lostandfound-be.raffifadlika.com/api/items"
         );
         const data = await response.json();
-
-        // Filter items with empty reports array
-        const itemsWithoutReports = data.data.filter(
+        const itemWithoutReports = data.data.filter(
           (item) => !item.reports || item.reports.length === 0
         );
-
-        // Separate lost and found items
-        const lost = itemsWithoutReports.filter(
-          (item) => item.type?.toLowerCase() === "lost"
+        const lost = itemWithoutReports.filter((item) => item.type === "lost");
+        const found = itemWithoutReports.filter(
+          (item) => item.type === "found"
         );
-        const found = itemsWithoutReports.filter(
-          (item) => item.type?.toLowerCase() === "found"
-        );
-
         setLostItems(lost);
         setFoundItems(found);
-        setError(null);
-      } catch (err) {
+      } catch (error) {
         setError("Failed to load data");
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
+
+  const closeModal = () => {
+    setShowViewModal(false);
+    setSelectedItem(null);
+    setReportData(null);
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      closeModal();
+    }
+  };
 
   const sidebarItems = [
     {
@@ -115,31 +133,53 @@ const AdminReport = () => {
     }
   };
 
-  const getTypeColor = (type) => {
-    switch (type?.toLowerCase()) {
-      case "found":
-        return "bg-emerald-100 text-emerald-800";
-      case "lost":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleViewItem = async (itemData) => {
+    setLoadingModal(true);
+    setSelectedItem(itemData);
+    setShowViewModal(true);
+
+    // Simulasi loading untuk fetch data detail
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Set report data dengan format yang sesuai
+    setReportData({
+      ...itemData,
+      reportedBy: itemData.reportedBy || "Unknown User",
+      contactInfo: itemData.contact || "No contact info",
+      additionalNotes: itemData.additionalNotes || "No additional notes",
+    });
+
+    setLoadingModal(false);
+  };
+
+  const handleDeleteItem = (itemData) => {
+    // Mock SweetAlert2 functionality
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${itemData.title}"? This action cannot be undone.`
+    );
+
+    if (confirmDelete) {
+      if (itemData.type === "lost") {
+        setLostItems((prev) => prev.filter((item) => item.id !== itemData.id));
+      } else {
+        setFoundItems((prev) => prev.filter((item) => item.id !== itemData.id));
+      }
+
+      // Mock success notification
+      alert("Item deleted successfully!");
     }
   };
 
-  const getTypeText = (type) => {
-    switch (type?.toLowerCase()) {
-      case "found":
-        return "Found";
-      case "lost":
-        return "Lost";
-      default:
-        return "N/A";
-    }
-  };
+  const filterItems = (items) => {
+    if (!searchTerm) return items;
 
-  const handleViewItem = (itemData) => {
-    // Handle view item logic here
-    console.log("View item:", itemData);
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   const renderSidebarSection = (sectionName, items) => (
@@ -153,7 +193,6 @@ const AdminReport = () => {
           onClick={() => {
             setActiveTab(item.id);
             if (item.directTo) {
-              console.log("Navigate to:", item.directTo);
               navigate(item.directTo);
             }
           }}
@@ -170,16 +209,8 @@ const AdminReport = () => {
     </div>
   );
 
-  const renderTable = (items, title, emptyMessage) => (
+  const renderTable = (items, title) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-            {items.length} items
-          </span>
-        </div>
-      </div>
       <div className="overflow-x-auto">
         {items.length > 0 ? (
           <table className="w-full">
@@ -215,7 +246,7 @@ const AdminReport = () => {
                     #{itemData.id}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900">
-                    <div className="max-w-32 truncate">
+                    <div className="max-w-32 truncate font-medium">
                       {itemData.title}
                     </div>
                   </td>
@@ -230,7 +261,7 @@ const AdminReport = () => {
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900">
-                    {new Date(itemData.date).toLocaleDateString()}
+                    {new Date(itemData.date).toLocaleDateString("id-ID")}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span
@@ -251,12 +282,7 @@ const AdminReport = () => {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        className="text-green-600 hover:text-green-900 p-1 hover:bg-green-50 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
+                        onClick={() => handleDeleteItem(itemData)}
                         className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
                         title="Delete"
                       >
@@ -274,18 +300,216 @@ const AdminReport = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No Items Found
             </h3>
-            <p className="text-sm text-gray-500">{emptyMessage}</p>
+            <p className="text-sm text-gray-500">
+              {searchTerm
+                ? `No items match your search "${searchTerm}"`
+                : `No ${activeItemTab} items without reports found.`}
+            </p>
           </div>
         )}
       </div>
     </div>
   );
 
+  const ViewModal = () => {
+    if (!showViewModal || !selectedItem) return null;
+
+    return (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={handleBackdropClick}
+      >
+        <div
+          className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all duration-300"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Item Details
+            </h2>
+            <button
+              onClick={closeModal}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Content - Scrollable */}
+          <div className="max-h-[calc(90vh-140px)] overflow-y-auto">
+            {loadingModal ? (
+              // Loading State
+              <div className="p-6 animate-pulse">
+                <div className="w-full h-48 bg-gray-300 rounded-lg mb-6"></div>
+                <div className="h-6 bg-gray-300 rounded mb-2 w-3/4"></div>
+                <div className="h-4 bg-gray-300 rounded mb-6 w-1/2"></div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="h-16 bg-gray-300 rounded"></div>
+                  <div className="h-16 bg-gray-300 rounded"></div>
+                  <div className="h-16 bg-gray-300 rounded"></div>
+                  <div className="h-16 bg-gray-300 rounded"></div>
+                </div>
+              </div>
+            ) : (
+              // Main Content
+              <div className="p-6">
+                {/* Image Section */}
+                <div className="mb-6">
+                  <div className="w-full h-64 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center overflow-hidden">
+                    {selectedItem.image && selectedItem.image[0] ? (
+                      <img
+                        src={getStorageUrl(selectedItem.image[0])}
+                        alt={selectedItem.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500">
+                        <div className="w-20 h-20 mx-auto mb-3 bg-gray-400 rounded-xl flex items-center justify-center">
+                          <Package className="w-8 h-8" />
+                        </div>
+                        <p className="text-sm font-medium">
+                          No Image Available
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Image not provided
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Title Section */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {selectedItem.title}
+                    </h3>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        selectedItem.status
+                      )}`}
+                    >
+                      {selectedItem.status || "N/A"}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-2">
+                    {selectedItem.description}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono">
+                    Item ID: {selectedItem.id}
+                  </p>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Location */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Location
+                    </span>
+                    <div className="flex items-center gap-3 text-gray-900 font-medium">
+                      <MapPin size={18} className="text-gray-400" />
+                      {selectedItem.location}
+                    </div>
+                  </div>
+
+                  {/* Category */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Category
+                    </span>
+                    <div className="flex items-center gap-3 text-blue-600 font-medium">
+                      <Tag size={18} className="text-gray-400" />
+                      {selectedItem.category}
+                    </div>
+                  </div>
+
+                  {/* Date Reported */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Date Reported
+                    </span>
+                    <div className="flex items-center gap-3 text-gray-900 font-medium">
+                      <Calendar size={18} className="text-gray-400" />
+                      {new Date(selectedItem.date).toLocaleDateString("id-ID")}
+                    </div>
+                  </div>
+
+                  {/* Type */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Type
+                    </span>
+                    <div className="flex items-center gap-3 text-gray-900 font-medium">
+                      <User size={18} className="text-gray-400" />
+                      {selectedItem.type === "lost"
+                        ? "Lost Item"
+                        : "Found Item"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="mb-6">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                    Description
+                  </span>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700 leading-relaxed">
+                      {selectedItem.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                {reportData && (
+                  <>
+                    <div className="mb-6">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                        Contact Information
+                      </span>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-gray-700 font-medium">
+                          {reportData.contactInfo}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Additional Notes */}
+                    {reportData.additionalNotes &&
+                      reportData.additionalNotes !== "No additional notes" && (
+                        <div className="mb-6">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                            Additional Notes
+                          </span>
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                            <p className="text-blue-800 text-sm">
+                              {reportData.additionalNotes}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const groupedItems = sidebarItems.reduce((acc, item) => {
     if (!acc[item.section]) acc[item.section] = [];
     acc[item.section].push(item);
     return acc;
   }, {});
+
+  const currentItems =
+    activeItemTab === "lost" ? filterItems(lostItems) : filterItems(foundItems);
+  const allLostItems = filterItems(lostItems);
+  const allFoundItems = filterItems(foundItems);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -321,7 +545,9 @@ const AdminReport = () => {
               >
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Items Reported</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Items Reported
+              </h1>
             </div>
 
             <div className="flex items-center space-x-4">
@@ -367,25 +593,78 @@ const AdminReport = () => {
 
             {/* Dashboard Content */}
             {!loading && !error && (
-              <div className="space-y-8">
-                {/* Lost Items Table */}
-                {renderTable(
-                  lostItems,
-                  "Lost Items",
-                  "No lost items without reports found."
-                )}
+              <div className="space-y-6">
+                {/* Search Bar */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="Search items by title, location, category, or description..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-                {/* Found Items Table */}
-                {renderTable(
-                  foundItems,
-                  "Found Items", 
-                  "No found items without reports found."
-                )}
+                {/* Tab Navigation */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8 px-6">
+                      <button
+                        onClick={() => setActiveItemTab("lost")}
+                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                          activeItemTab === "lost"
+                            ? "border-red-500 text-red-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <XCircle className="w-4 h-4" />
+                          <span>Lost Items</span>
+                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            {allLostItems.length}
+                          </span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setActiveItemTab("found")}
+                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                          activeItemTab === "found"
+                            ? "border-green-500 text-green-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Found Items</span>
+                          <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            {allFoundItems.length}
+                          </span>
+                        </div>
+                      </button>
+                    </nav>
+                  </div>
+
+                  {/* Table Content */}
+                  <div className="p-6">
+                    {renderTable(
+                      currentItems,
+                      activeItemTab === "lost" ? "Lost Items" : "Found Items"
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </main>
       </div>
+
+      {/* View Modal */}
+      <ViewModal />
 
       {/* Sidebar Overlay */}
       {sidebarOpen && (

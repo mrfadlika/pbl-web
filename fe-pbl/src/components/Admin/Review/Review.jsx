@@ -79,6 +79,56 @@ const ReviewedAdmin = () => {
     }
   };
 
+  const getShareUrl = (selectedItem) => {
+    const baseUrl =
+      selectedItem && selectedItem.type === "lost"
+        ? `${window.location.origin}/lost-items`
+        : `${window.location.origin}/found-items`;
+    return `${baseUrl}?id=${selectedItem.id}`;
+  };
+
+  const shareToWhatsApp = (contact, item) => {
+    const shareText = `${item.title} - Lihat detail item ini:\n ${getShareUrl(item)}`;
+    const whatsappUrl = `https://wa.me/${contact}?text=${encodeURIComponent(shareText)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleVerify = async (reportId) => {
+    try {
+      // Ambil report yang akan diverifikasi
+      const report = reports.find(r => r.id === reportId);
+      if (!report) {
+        throw new Error("Report not found");
+      }
+
+      const response = await fetch(
+        `https://lostandfound-be.raffifadlika.com/api/items/${selectedItem.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "verified",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to verify report");
+      }
+
+      // Share ke WhatsApp setelah verifikasi berhasil
+      shareToWhatsApp(report.contact, selectedItem);
+
+      // Refresh reports data
+      await fetchReports(selectedItem.id);
+      
+    } catch (error) {
+      console.error("Error verifying report:", error);
+    }
+  };
+
   const sidebarItems = [
     {
       id: "dashboard",
@@ -524,7 +574,7 @@ const ReviewedAdmin = () => {
                                 </p>
                               </div>
 
-                              <div className="grid grid-cols-3 gap-4">
+                              <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Report Type
@@ -536,20 +586,6 @@ const ReviewedAdmin = () => {
                                       )}`}
                                     >
                                       {getTypeText(report.report_type)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                  </label>
-                                  <div className="mt-1">
-                                    <span
-                                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                                        report.status
-                                      )}`}
-                                    >
-                                      {report.status}
                                     </span>
                                   </div>
                                 </div>
@@ -609,12 +645,31 @@ const ReviewedAdmin = () => {
                               </div>
                               <div className="pt-4 border-t border-gray-200">
                                 <div className="flex space-x-3">
-                                  <button className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                                    Verify
-                                  </button>
-                                  <button className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-                                    Reject
-                                  </button>
+                                  {selectedItem.status === "pending" && (
+                                    <>
+                                      <button
+                                        onClick={() =>
+                                          handleVerify(selectedItem.id)
+                                        }
+                                        className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                                      >
+                                        Verify
+                                      </button>
+                                      <button className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  {selectedItem.status === "verified" && (
+                                    <div className="w-full px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
+                                      Verified
+                                    </div>
+                                  )}
+                                  {selectedItem.status === "rejected" && (
+                                    <div className="w-full px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
+                                      Rejected
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>

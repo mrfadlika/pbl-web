@@ -136,12 +136,6 @@ const Katalog = ({
               >
                 Home
               </a>
-              <a
-                href="#"
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-              >
-                Minfess
-              </a>
             </nav>
 
             <div className="flex items-center md:hidden">
@@ -163,12 +157,6 @@ const Katalog = ({
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50"
                 >
                   Home
-                </a>
-                <a
-                  href="#"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-                >
-                  Minfess
                 </a>
               </div>
             </div>

@@ -29,6 +29,7 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardData, setDashboardData] = useState(null);
+  const [statusData, setStatusData] = useState([]);
   const [totalItems, setTotalItems] = useState(null);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,6 +105,10 @@ const AdminDashboard = () => {
   const getStatsCards = () => {
     if (!dashboardData) return [];
 
+    const verifiedCount = Array.isArray(item)
+      ? item.filter((items) => items.status === "verified").length
+      : 0;
+
     return [
       {
         title: "Total Items",
@@ -131,7 +136,7 @@ const AdminDashboard = () => {
       },
       {
         title: "Report Verified",
-        value: dashboardData.verified_reports?.toString() || "0",
+        value: verifiedCount.toString(),
         change: "+4.1%",
         changeType: "positive",
         icon: Users,

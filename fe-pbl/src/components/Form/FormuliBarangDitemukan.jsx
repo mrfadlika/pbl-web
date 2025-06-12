@@ -238,12 +238,6 @@ const FormuliBarangDitemukan = () => {
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/minfess"
-                  className="text-slate-800 hover:text-blue-600 transition-colors"
-                >
-                  Minfess
-                </Link>
               </li>
             </ul>
           </nav>

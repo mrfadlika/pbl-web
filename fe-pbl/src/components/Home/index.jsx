@@ -128,12 +128,6 @@ export default function Home() {
               >
                 List
               </a>
-              <a
-                href="#"
-                className="hover:text-indigo-200 transition font-medium"
-              >
-                Minfess
-              </a>
             </nav>
           </div>
 
@@ -336,83 +330,6 @@ export default function Home() {
             ))}
           </div>
         )}
-      </section>
-
-      {/* Success Stories */}
-      <section className="container mx-auto px-4 mb-16">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-3">Success Stories</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            These items were successfully returned to their owners thanks to our
-            community members.
-          </p>
-        </div>
-
-        <div className="max-w-5xl mx-auto">
-          {displayedMatchedItems.map((match) => (
-            <div
-              key={match.id}
-              className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 shadow-md"
-            >
-              <div className="flex flex-col md:flex-row gap-8 items-center">
-                <div className="md:w-1/3">
-                  <div className="rounded-xl overflow-hidden shadow-md">
-                    <img
-                      src={typeof match.image === 'string' ? getStorageUrl(match.image) : '/placeholder-image.jpg'}
-                      alt={match.lost.title}
-                      className="w-full h-48 object-cover"
-                      onError={(e) => {
-                        e.target.src = '/placeholder-image.jpg';
-                        e.target.onerror = null;
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="md:w-2/3">
-                  <div className="flex items-center mb-4">
-                    <span className="bg-green-100 text-green-800 font-medium px-3 py-1 rounded-full text-sm">
-                      Mission Complete!
-                    </span>
-                    <Bell className="ml-2 text-yellow-500" size={18} />
-                  </div>
-
-                  <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-                    <p className="font-medium text-gray-800">
-                      Lost by {match.lost.user} on {formatDate(match.lost.date, 'medium')}
-                    </p>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {match.lost.title}
-                    </h3>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-4 shadow-sm">
-                    <p className="font-medium text-gray-800">
-                      Found by {match.found.user} on {formatDate(match.found.date, 'medium')}
-                    </p>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {match.found.title}
-                    </h3>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-center mt-8">
-          <div className="flex gap-2">
-            {[1, 2, 3, 4].map((i) => (
-              <button
-                key={i}
-                className={`w-2.5 h-2.5 rounded-full ${
-                  i === 1 ? "bg-indigo-600" : "bg-gray-300"
-                }`}
-                aria-label={`Go to slide ${i}`}
-              />
-            ))}
-          </div>
-        </div>
       </section>
 
       <FooterGlobal />
