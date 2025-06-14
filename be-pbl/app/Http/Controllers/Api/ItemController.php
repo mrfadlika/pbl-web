@@ -129,7 +129,7 @@ class ItemController extends Controller
             'location' => 'sometimes|string|max:255',
             'category' => 'sometimes|string|max:255',
             'date' => 'sometimes|date',
-            'status' => 'sometimes|in:pending,verified,claimed,returned,archived',
+            'status' => 'sometimes|in:pending,verified,rejected',
             'images' => 'sometimes|array',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);

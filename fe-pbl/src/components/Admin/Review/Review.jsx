@@ -34,6 +34,8 @@ const ReviewedAdmin = () => {
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [reports, setReports] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReportId, setRejectReportId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -88,19 +90,23 @@ const ReviewedAdmin = () => {
   };
 
   const shareToWhatsApp = (contact, item) => {
-    const shareText = `${item.title} - Lihat detail item ini:\n ${getShareUrl(item)}`;
-    const whatsappUrl = `https://wa.me/${contact}?text=${encodeURIComponent(shareText)}`;
-    window.open(whatsappUrl, '_blank');
+    const shareText = `${item.title} - Lihat detail item ini:\n ${getShareUrl(
+      item
+    )}`;
+    const whatsappUrl = `https://wa.me/${contact}?text=${encodeURIComponent(
+      shareText
+    )}`;
+    window.open(whatsappUrl, "_blank");
   };
 
   const handleVerify = async (reportId) => {
     try {
-      // Ambil report yang akan diverifikasi
-      const report = reports.find(r => r.id === reportId);
+      const report = reports.find((r) => r.id === reportId);
       if (!report) {
         throw new Error("Report not found");
       }
 
+      // Ubah ke selectedItem.id karena kita memverifikasi item, bukan report
       const response = await fetch(
         `https://lostandfound-be.raffifadlika.com/api/items/${selectedItem.id}`,
         {
@@ -121,11 +127,48 @@ const ReviewedAdmin = () => {
       // Share ke WhatsApp setelah verifikasi berhasil
       shareToWhatsApp(report.contact, selectedItem);
 
-      // Refresh reports data
+      // Refresh data
       await fetchReports(selectedItem.id);
-      
     } catch (error) {
       console.error("Error verifying report:", error);
+    }
+  };
+
+  const handleRejectClick = (reportId) => {
+    setRejectReportId(reportId);
+    setShowRejectModal(true);
+  };
+
+  const handleReject = async () => {
+    try {
+      const report = reports.find((r) => r.id === rejectReportId);
+      if (!report) {
+        throw new Error("Report not found");
+      }
+
+      const response = await fetch(
+        `https://lostandfound-be.raffifadlika.com/api/items/${selectedItem.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "rejected",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to reject report");
+      }
+
+      setShowRejectModal(false);
+      setRejectReportId(null);
+
+      await fetchReports(selectedItem.id);
+    } catch (error) {
+      console.error("Error rejecting report:", error);
     }
   };
 
@@ -648,14 +691,15 @@ const ReviewedAdmin = () => {
                                   {selectedItem.status === "pending" && (
                                     <>
                                       <button
-                                        onClick={() =>
-                                          handleVerify(selectedItem.id)
-                                        }
+                                        onClick={() => handleVerify(report.id)}
                                         className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
                                       >
                                         Verify
                                       </button>
-                                      <button className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                                      <button
+                                        onClick={() => handleRejectClick(report.id)}
+                                        className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                                      >
                                         Reject
                                       </button>
                                     </>
@@ -712,6 +756,34 @@ const ReviewedAdmin = () => {
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
+      )}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50"></div>
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4 relative z-10">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm Rejection
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Are you sure you want to reject this report? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
